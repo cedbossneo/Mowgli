@@ -197,7 +197,7 @@ void EmergencyController(void)
         }
         else if (now-red_wheel_lift_emergency_started>=ONE_WHEEL_LIFT_EMERGENCY_MILLIS)
         {
-            emergency_state |= 0b01000;
+            emergency_state |= 0b10000;
             debug_printf(" ## EMERGENCY ## - WHEEL LIFT (red) triggered\r\n");
         }
     } else {
