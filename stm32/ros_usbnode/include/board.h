@@ -75,6 +75,7 @@ extern "C"
 #define OPTION_ULTRASONIC 0
 #define OPTION_BUMPER 0
 #elif defined(BOARD_LUV1000RI) // TODO: This currently can't be selected via platformio
+#define VALID_BOARD_DEFINED 1
 #define PANEL_TYPE PANEL_TYPE_YARDFORCE_LUV1000RI
 #define BLADEMOTOR_LENGTH_RECEIVED_MSG 14
 
