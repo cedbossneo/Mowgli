@@ -62,7 +62,7 @@ extern union FtoU charge_current_offset;
 *******************************************************************************/
 
 void TIM2_Init(void);
-void ADC2_Init(void);
+void ADC_Charging_Init(void);
 
 void ADC_input(void);
 

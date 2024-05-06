@@ -32,22 +32,22 @@ const float beta = 3380;
  *******************************************************************************/
 typedef enum
 {
-    ADC2_CHANNEL_CURRENT = 0,
-    ADC2_CHANNEL_CHARGEVOLTAGE,
-    ADC2_CHANNEL_BATTERYVOLTAGE,
-    ADC2_CHANNEL_CHARGERINPUTVOLTAGE,
-    ADC2_CHANNEL_NTC,
-    ADC2_CHANNEL_MAX,
-} ADC2_channelSelection_e;
+    ADC_CHARGING_CHANNEL_CURRENT = 0,
+    ADC_CHARGING_CHANNEL_CHARGEVOLTAGE,
+    ADC_CHARGING_CHANNEL_BATTERYVOLTAGE,
+    ADC_CHARGING_CHANNEL_CHARGERINPUTVOLTAGE,
+    ADC_CHARGING_CHANNEL_NTC,
+    ADC_CHARGING_CHANNEL_MAX,
+} ADC_Charging_channelSelection_e;
 
 /******************************************************************************
  * Module Variable Definitions
  *******************************************************************************/
 TIM_HandleTypeDef TIM2_Handle; // Time Base for ADC
-ADC_HandleTypeDef ADC2_Handle;
+ADC_HandleTypeDef ADC_Charging_Handle;
 RTC_HandleTypeDef hrtc = {0};
 
-ADC2_channelSelection_e adc2_eChannelSelection = ADC2_CHANNEL_CURRENT;
+ADC_Charging_channelSelection_e adc_charging_eChannelSelection = ADC_CHARGING_CHANNEL_CURRENT;
 
 volatile uint16_t adc_u16BatteryVoltage       = 0;
 volatile uint16_t adc_u16Current              = 0;
@@ -69,7 +69,7 @@ union FtoU charge_current_offset;
 /******************************************************************************
  * Function Prototypes
  *******************************************************************************/
-void adc2_SetChannel(ADC2_channelSelection_e channel);
+void adc_charging_SetChannel(ADC_Charging_channelSelection_e channel);
 
 /******************************************************************************
  *  Public Functions
@@ -142,9 +142,17 @@ void TIM2_Init(void)
  * @param None
  * @retval None
  */
-void ADC2_Init(void)
+void ADC_Charging_Init(void)
 {
+	// Configuration: ADC1 for Yardforce 500B
+	// 				  ADC2 for Yardforce 500 original
+#if BOARD_YARDFORCE500_VARIANT_ORIG
     __HAL_RCC_ADC2_CLK_ENABLE();
+	ADC_TypeDef *Charging_ADC = ADC2;
+#elif BOARD_YARDFORCE500_VARIANT_B
+	__HAL_RCC_ADC1_CLK_ENABLE();
+	ADC_TypeDef *Charging_ADC = ADC1;
+#endif
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -173,34 +181,62 @@ void ADC2_Init(void)
 
     /** Common config
      */
-    ADC2_Handle.Instance = ADC2;
-    ADC2_Handle.Init.ScanConvMode = ADC_SCAN_DISABLE;
-    ADC2_Handle.Init.ContinuousConvMode = DISABLE;
-    ADC2_Handle.Init.DiscontinuousConvMode = DISABLE;
-    ADC2_Handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2;
-    ADC2_Handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    ADC2_Handle.Init.NbrOfConversion = 1;
-    if (HAL_ADC_Init(&ADC2_Handle) != HAL_OK)
+    ADC_Charging_Handle.Instance = Charging_ADC;
+	// technically ADC_SCAN_DISABLE on STM32f1, but this is compatible with STM32f1 und STM32f4, and zero is zero
+	ADC_Charging_Handle.Init.ScanConvMode = DISABLE;
+	ADC_Charging_Handle.Init.ContinuousConvMode = DISABLE;
+	ADC_Charging_Handle.Init.DiscontinuousConvMode = DISABLE;
+	ADC_Charging_Handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2;
+	ADC_Charging_Handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	ADC_Charging_Handle.Init.NbrOfConversion = 1;
+
+#if BOARD_YARDFORCE500_VARIANT_B
+	ADC_Charging_Handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+	ADC_Charging_Handle.Init.Resolution = ADC_RESOLUTION_12B;
+	ADC_Charging_Handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+    ADC_Charging_Handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2;
+	ADC_Charging_Handle.Init.DMAContinuousRequests = DISABLE;
+	ADC_Charging_Handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+#endif
+
+    if (HAL_ADC_Init(&ADC_Charging_Handle) != HAL_OK)
     {
         Error_Handler();
     }
 
-    adc2_eChannelSelection = ADC2_CHANNEL_CURRENT;
-    adc2_SetChannel(adc2_eChannelSelection);
+	adc_charging_eChannelSelection = ADC_CHARGING_CHANNEL_CURRENT;
+	adc_charging_SetChannel(adc_charging_eChannelSelection);
 
-    HAL_NVIC_SetPriority(ADC1_2_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+#if BOARD_YARDFORCE500_VARIANT_ORIG
+	IRQn_Type used_ADC_irq = ADC1_2_IRQn;
+#elif BOARD_YARDFORCE500_VARIANT_B
+	IRQn_Type used_ADC_irq = ADC_IRQn;
+#endif
 
+    HAL_NVIC_SetPriority(used_ADC_irq, 0, 0);
+    HAL_NVIC_EnableIRQ(used_ADC_irq);
+
+#if BOARD_YARDFORCE500_VARIANT_ORIG
     // calibrate  - important for accuracy !
-    HAL_ADCEx_Calibration_Start(&ADC2_Handle);
-    HAL_ADC_Start_IT(&ADC2_Handle);
+    HAL_ADCEx_Calibration_Start(&ADC_Charging_Handle);
+
+	// TODO: The STM32f4 does not have a function to calibrate the ADC,
+	//		 so we either need manual calibration or just assume it is
+	// 		 calibrated correctly all the time
+#endif
+    HAL_ADC_Start_IT(&ADC_Charging_Handle);
     HAL_TIM_OC_Start(&TIM2_Handle, TIM_CHANNEL_2);
 
     /* USER CODE BEGIN RTC_MspInit 0 */
     __HAL_RCC_PWR_CLK_ENABLE();
     /* USER CODE END RTC_MspInit 0 */
     /* Enable BKP CLK enable for backup registers */
+
+#if BOARD_YARDFORCE500_VARIANT_ORIG
+	// The STM32f4 seems to not require this, but the STM32f1 does
+	// TODO: Check if this is true
     __HAL_RCC_BKP_CLK_ENABLE();
+#endif
     /* Peripheral clock enable */
     __HAL_RCC_RTC_ENABLE();
     /* USER CODE BEGIN RTC_MspInit 1 */
@@ -266,45 +302,45 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     }
 #endif
 
-    if (hadc == &ADC2_Handle)
+    if (hadc == &ADC_Charging_Handle)
     {
-        uint16_t l_u16Rawdata = ADC2_Handle.Instance->DR;
+        uint16_t l_u16Rawdata = ADC_Charging_Handle.Instance->DR;
 
-        switch (adc2_eChannelSelection)
+        switch (adc_charging_eChannelSelection)
         {
-        case ADC2_CHANNEL_CURRENT:
+        case ADC_CHARGING_CHANNEL_CURRENT:
             adc_u16Current = l_u16Rawdata;
             break;
 
-        case ADC2_CHANNEL_CHARGEVOLTAGE:
+        case ADC_CHARGING_CHANNEL_CHARGEVOLTAGE:
             adc_u16ChargerVoltage = l_u16Rawdata;
             break;
 
-        case ADC2_CHANNEL_BATTERYVOLTAGE:
+        case ADC_CHARGING_CHANNEL_BATTERYVOLTAGE:
             adc_u16BatteryVoltage = l_u16Rawdata;
             break;
 
-        case ADC2_CHANNEL_CHARGERINPUTVOLTAGE:
+        case ADC_CHARGING_CHANNEL_CHARGERINPUTVOLTAGE:
             adc_u16ChargerInputVoltage = l_u16Rawdata;
             break;
 
-        case ADC2_CHANNEL_NTC:
+        case ADC_CHARGING_CHANNEL_NTC:
             adc_u16Input_NTC = l_u16Rawdata;
 
             break;
 
-        case ADC2_CHANNEL_MAX:
+        case ADC_CHARGING_CHANNEL_MAX:
         default:
             /* should not get here */
             break;
         }
 
-        adc2_eChannelSelection++;
-        if (adc2_eChannelSelection == ADC2_CHANNEL_MAX)
-            adc2_eChannelSelection = ADC2_CHANNEL_CURRENT;
-        adc2_SetChannel(adc2_eChannelSelection);
+        adc_charging_eChannelSelection++;
+        if (adc_charging_eChannelSelection == ADC_CHARGING_CHANNEL_MAX)
+			adc_charging_eChannelSelection = ADC_CHARGING_CHANNEL_CURRENT;
+		adc_charging_SetChannel(adc_charging_eChannelSelection);
 
-        HAL_ADC_Start_IT(&ADC2_Handle);
+        HAL_ADC_Start_IT(&ADC_Charging_Handle);
     }
 }
 
@@ -314,69 +350,75 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
  *  Private Functions
  *******************************************************************************/
 
-void adc2_SetChannel(ADC2_channelSelection_e channel)
+void adc_charging_SetChannel(ADC_Charging_channelSelection_e channel)
 {
     ADC_ChannelConfTypeDef sConfig = {0};
 
+#if BOARD_YARDFORCE500_VARIANT_ORIG
+	uint32_t adc_SampleTime = ADC_SAMPLETIME_239CYCLES_5;
+#elif BOARD_YARDFORCE500_VARIANT_B
+	uint32_t adc_SampleTime = ADC_SAMPLETIME_480CYCLES;
+#endif
+
     switch (channel)
     {
-    case ADC2_CHANNEL_CURRENT:
+    case ADC_CHARGING_CHANNEL_CURRENT:
         sConfig.Channel = ADC_CHANNEL_1; // PA1 Charge Current
-        sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-        if (HAL_ADC_ConfigChannel(&ADC2_Handle, &sConfig) != HAL_OK)
+        sConfig.Rank = 1;
+        sConfig.SamplingTime = adc_SampleTime;
+        if (HAL_ADC_ConfigChannel(&ADC_Charging_Handle, &sConfig) != HAL_OK)
         {
             Error_Handler();
         }
         break;
 
-    case ADC2_CHANNEL_CHARGEVOLTAGE:
+    case ADC_CHARGING_CHANNEL_CHARGEVOLTAGE:
         sConfig.Channel = ADC_CHANNEL_2; // PA2 Charge Voltage
-        sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-        if (HAL_ADC_ConfigChannel(&ADC2_Handle, &sConfig) != HAL_OK)
+        sConfig.Rank = 1;
+        sConfig.SamplingTime = adc_SampleTime;
+        if (HAL_ADC_ConfigChannel(&ADC_Charging_Handle, &sConfig) != HAL_OK)
         {
             Error_Handler();
         }
         break;
 
-    case ADC2_CHANNEL_BATTERYVOLTAGE:
+    case ADC_CHARGING_CHANNEL_BATTERYVOLTAGE:
         sConfig.Channel = ADC_CHANNEL_3; // PA3 Battery
-        sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-        if (HAL_ADC_ConfigChannel(&ADC2_Handle, &sConfig) != HAL_OK)
+        sConfig.Rank = 1;
+        sConfig.SamplingTime = adc_SampleTime;
+        if (HAL_ADC_ConfigChannel(&ADC_Charging_Handle, &sConfig) != HAL_OK)
         {
             Error_Handler();
         }
         break;
 
-    case ADC2_CHANNEL_CHARGERINPUTVOLTAGE:
+    case ADC_CHARGING_CHANNEL_CHARGERINPUTVOLTAGE:
         sConfig.Channel = ADC_CHANNEL_7; // PA7 Charger Input voltage
-        sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-        if (HAL_ADC_ConfigChannel(&ADC2_Handle, &sConfig) != HAL_OK)
+        sConfig.Rank = 1;
+        sConfig.SamplingTime = adc_SampleTime;
+        if (HAL_ADC_ConfigChannel(&ADC_Charging_Handle, &sConfig) != HAL_OK)
         {
             Error_Handler();
         }
         break;
 
-    case ADC2_CHANNEL_NTC:
+    case ADC_CHARGING_CHANNEL_NTC:
         sConfig.Channel = ADC_CHANNEL_13; // PC2
-        sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-        if (HAL_ADC_ConfigChannel(&ADC2_Handle, &sConfig) != HAL_OK)
+        sConfig.Rank = 1;
+        sConfig.SamplingTime = adc_SampleTime;
+        if (HAL_ADC_ConfigChannel(&ADC_Charging_Handle, &sConfig) != HAL_OK)
         {
             Error_Handler();
         }
         break;
 
-    case ADC2_CHANNEL_MAX:
+    case ADC_CHARGING_CHANNEL_MAX:
     default:
         /* should not get here */
         sConfig.Channel = ADC_CHANNEL_3; // PA3 Battery
-        sConfig.Rank = ADC_REGULAR_RANK_1;
-        sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-        if (HAL_ADC_ConfigChannel(&ADC2_Handle, &sConfig) != HAL_OK)
+        sConfig.Rank = 1;
+        sConfig.SamplingTime = adc_SampleTime;
+        if (HAL_ADC_ConfigChannel(&ADC_Charging_Handle, &sConfig) != HAL_OK)
         {
             Error_Handler();
         }

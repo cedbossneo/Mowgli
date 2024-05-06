@@ -8,3 +8,6 @@ __pycache__
 raspi_remote_upload.py
 platformio.ini
 *.bin
+CMakeLists.txt
+CMakeListsPrivate.txt
+cmake-build*

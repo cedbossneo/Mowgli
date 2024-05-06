@@ -23,7 +23,7 @@
  * 2013-05-08     Grissiom     reimplement
  */
 
-#include "stm32f1xx_hal.h"
+#include "stm32f_board_hal.h"
 #include "ringbuffer.h"
 #include <string.h>
 

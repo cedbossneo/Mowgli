@@ -68,8 +68,10 @@ void perimeter_SetCoil(perimeter_CoilNumber_e idx);
 /******************************************************************************
 *  Public Functions
 *******************************************************************************/
+// TODO: We can't use ADC1 exclusively for perimeter for the Yardforce 500B, since it is used for charging already!
+// 		 This could be multiplexed, but this is a task for later as perimeter sensing is not needed for now.
 void Perimeter_vInit(void){
-    
+#if BOARD_YARDFORCE500_VARIANT_ORIG
  ADC_ChannelConfTypeDef sConfig = {0};
     
     __HAL_RCC_ADC1_CLK_ENABLE();
@@ -145,6 +147,7 @@ void Perimeter_vInit(void){
   perimeter_SetCoil(idxCoil);
   HAL_ADC_Start_DMA(&ADC_Handle,(uint32_t*)&pu16_PerimeterADC_buffer[0],PERIMETER_NBPTS);
   __HAL_DMA_DISABLE_IT(&hdma_adc,DMA_IT_HT);
+#endif
 }
 
 void Perimeter_vApp(void){

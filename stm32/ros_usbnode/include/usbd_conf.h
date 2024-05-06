@@ -31,8 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "main.h"
-#include "stm32f1xx.h"
-#include "stm32f1xx_hal.h"
+#include "stm32f_board_hal.h"
 
 /* USER CODE BEGIN INCLUDE */
 

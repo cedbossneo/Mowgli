@@ -5,7 +5,7 @@
  *      Author: Itamar Eliakim
  */
 
-#include "stm32f1xx_hal.h"
+#include "stm32f_board_hal.h"
 #include "nbt.h"
 
 //NBT - Non Blocking Timer
