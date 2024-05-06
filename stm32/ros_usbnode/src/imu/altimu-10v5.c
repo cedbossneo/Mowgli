@@ -49,6 +49,19 @@ uint8_t ALTIMU10v5_TestDevice(void)
         debug_printf("    > [AltIMU-10v5] - Error probing for LSM6DS33 (Gyro / Accelerometer) at I2C addr=0x%0x\r\n", DS33_ADDRESS);
         return(0);
     }
+
+    /* test the LSM6DS0 (gyro and accelerometer) */
+    val = SW_I2C_UTIL_Read(DS0_ADDRESS, DS0_WHO_AM_I);
+    if (val == DS0_WHO_ID)
+    {
+        debug_printf("    > [AltIMU-10v5] - LSM6DS0 (Gyro / Accelerometer) FOUND at I2C addr=0x%0x\r\n", DS0_ADDRESS);
+    }
+    else
+    {
+        debug_printf("    > [AltIMU-10v5] - Error probing for LSM6DS0 (Gyro / Accelerometer) at I2C addr=0x%0x\r\n", DS0_ADDRESS);
+        return(0);
+    }
+
     /* test the LIS3MDL (magnetometer) */
     val = SW_I2C_UTIL_Read(LIS3MDL_ADDRESS, LIS3MDL_WHO_AM_I);
     if (val == LIS3MDL_WHO_ID)

@@ -9,6 +9,8 @@
 #define LIS3MDL_GAUSS_FACTOR    1.0/6842            // LIS3MDL datasheet (page8)  Gauss/LSB 
 
 /* Gyro / Accelerometer */
+#define DS0_ADDRESS 0b1101011
+#define DS0_WHO_ID    0x6C         // WHO_AM_I will report this value
 #define DS33_ADDRESS 0b1101011
 #define DS33_WHO_ID    0x69         // WHO_AM_I will report this value
 
@@ -23,6 +25,7 @@
 /* Conversion functions */
 #define IMU_MAG_TO_T(r) ((r)*LIS3MDL_GAUSS_FACTOR*T_PER_GAUSS)
 
+#define DS0_WHO_AM_I           0x0F
 #define DS33_FUNC_CFG_ACCESS    0x01
 #define DS33_FIFO_CTRL1         0x06
 #define DS33_FIFO_CTRL2         0x07
