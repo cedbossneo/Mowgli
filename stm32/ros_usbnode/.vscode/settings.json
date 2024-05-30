@@ -20,5 +20,8 @@
         "mpu6050.h": "c",
         "wt901.h": "c"
     },
-    "C_Cpp.errorSquiggles": "disabled"
+    "C_Cpp.errorSquiggles": "disabled",
+    "i18n-ally.localesPaths": [
+        "src/ros/ros_custom/messages"
+    ]
 }

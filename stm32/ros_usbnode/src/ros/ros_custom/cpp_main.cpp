@@ -25,9 +25,10 @@
 #include "ultrasonic_sensor.h"
 #include "stm32f1xx_hal.h"
 #include "ringbuffer.h"
-#include "ros.h"
-#include "ros/time.h"
-#include "ros/duration.h"
+#include <micro_ros_platformio.h>
+#include <rcl/rcl.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
 #include "tf/tf.h"
 #include "tf/transform_broadcaster.h"
 #include "std_msgs/Bool.h"
@@ -65,6 +66,9 @@
 #include "mower_msgs/HighLevelControlSrv.h"
 #include "mower_msgs/HighLevelStatus.h"
 
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
+
 #ifdef OPTION_PERIMETER
 	#include "perimeter.h"
 	#include "mower_msgs/Perimeter.h"
@@ -79,7 +83,7 @@
 uint8_t RxBuffer[RxBufferSize];
 struct ringbuffer rb;
 
-ros::Time last_cmd_vel(0, 0);
+struct timespec last_cmd_vel;
 uint32_t last_cmd_vel_age; // age of last velocity command
 
 // drive motor control
@@ -92,7 +96,11 @@ static uint8_t right_dir = 0;
 static uint8_t blade_on_off = 0;
 static uint8_t blade_direction = 0;
 
-ros::NodeHandle nh;
+rclc_executor_t executor;
+rclc_support_t support;
+rcl_allocator_t allocator;
+rcl_node_t node;
+rcl_timer_t timer;
 
 float imu_onboard_temperature; // cached temp value, so we dont poll I2C constantly
 
@@ -127,15 +135,15 @@ float clamp(float d, float min, float max);
 /*
  * PUBLISHERS
  */
-ros::Publisher pubButtonState("buttonstate", &buttonstate_msg);
-ros::Publisher pubOMStatus("mower/status", &om_mower_status_msg);
-ros::Publisher pubWheelTicks("/mower/wheel_ticks", &wheel_ticks_msg);
+rcl_publisher_t pubButtonState; 
+rcl_publisher_t pubOMStatus; 
+rcl_publisher_t pubWheelTicks; 
 #ifdef ROS_PUBLISH_MOWGLI
 ros::Publisher pubStatus("mowgli/status", &status_msg);
 #endif
 
 // IMU external
-ros::Publisher pubIMU("imu/data_raw", &imu_msg);
+rcl_publisher_t pubIMU; 
 
 #if OPTION_ULTRASONIC == 1
 ros::Publisher pubLeftUltrasonic("ultrasonic/left", &ultrasonic_left_msg);
@@ -152,8 +160,8 @@ ros::Publisher pubRightBumper("bumper/right", &bumper_left_msg);
  */
 extern "C" void CommandVelocityMessageCb(const geometry_msgs::Twist &msg);
 extern "C" void CommandHighLevelStatusMessageCb(const mower_msgs::HighLevelStatus &msg);
-ros::Subscriber<geometry_msgs::Twist> subCommandVelocity("cmd_vel", CommandVelocityMessageCb);
-ros::Subscriber<mower_msgs::HighLevelStatus> subCommandHighLevelStatus("mower_logic/current_state", CommandHighLevelStatusMessageCb);
+rcl_subscription_t  subCommandVelocity;
+rcl_subscription_t  subCommandHighLevelStatus;
 
 // SERVICES
 void cbSetCfg(const mowgli::SetCfgRequest &req, mowgli::SetCfgResponse &res);
@@ -164,10 +172,10 @@ void cbReboot(const std_srvs::Empty::Request &req, std_srvs::Empty::Response &re
 
 // ros::ServiceServer<mowgli::SetCfgRequest, mowgli::SetCfgResponse> svcSetCfg("mowgli/SetCfg", cbSetCfg);
 // ros::ServiceServer<mowgli::GetCfgRequest, mowgli::GetCfgResponse> svcGetCfg("mowgli/GetCfg", cbGetCfg);
-ros::ServiceServer<mower_msgs::MowerControlSrvRequest, mower_msgs::MowerControlSrvResponse> svcEnableMowerMotor("mower_service/mow_enabled", cbEnableMowerMotor);
-ros::ServiceServer<mower_msgs::EmergencyStopSrvRequest, mower_msgs::EmergencyStopSrvResponse> svcSetEmergency("mower_service/emergency", cbSetEmergency);
-ros::ServiceClient<mower_msgs::HighLevelControlSrvRequest, mower_msgs::HighLevelControlSrvResponse> svcHighLevelControl("mower_service/high_level_control");
-ros::ServiceServer<std_srvs::Empty::Request, std_srvs::Empty::Response> svcReboot("mowgli/Reboot", cbReboot);
+rcl_client_t svcHighLevelControl;
+rcl_service_t svcEnableMowerMotor;
+rcl_service_t svcSetEmergency;
+rcl_service_t svcReboot;
 
 #ifdef OPTION_PERIMETER
 // om perimeter signal
@@ -291,7 +299,7 @@ extern "C" void CommandVelocityMessageCb(const geometry_msgs::Twist &msg)
 	double l_fVx;
 	double l_fVz;
 
-	last_cmd_vel = nh.now();
+	clock_gettime(CLOCK_REALTIME, &last_cmd_vel);
 	if (main_eOpenmowerStatus == OPENMOWER_STATUS_IDLE)
 	{
 		return;
@@ -382,7 +390,9 @@ extern "C" void motors_handler()
 		else
 		{
 			// if the last velocity cmd is older than 1sec we stop the drive motors
-			last_cmd_vel_age = nh.now().sec - last_cmd_vel.sec;
+			struct timespec now;
+			clock_gettime(CLOCK_REALTIME, &now);
+			last_cmd_vel_age =now.tv_sec - last_cmd_vel.tv_sec;
 			if (last_cmd_vel_age > 1)
 			{
 				DRIVEMOTOR_SetSpeed(0, 0, 0, 0);
@@ -468,8 +478,8 @@ extern "C" void ultrasonic_handler(void)
 	ultrasonic_right_msg.max_range = 2.0;
 	ultrasonic_right_msg.range = 0.5 * (ultrasonic_right_msg.range) + 0.5 * (float)(ULTRASONICSENSOR_u32GetRightDistance()) / 10000;
 
-	pubLeftUltrasonic.publish(&ultrasonic_left_msg);
-	pubRightUltrasonic.publish(&ultrasonic_right_msg);
+	RCSOFTCHECK(rcl_publish(pubLeftUltrasonic, &ultrasonic_left_msg, NULL));
+	RCSOFTCHECK(rcl_publish(pubRightUltrasonic, &ultrasonic_right_msg, NULL));
 }
 #endif
 
@@ -479,7 +489,10 @@ extern "C" void ultrasonic_handler(void)
  */
 extern "C" void wheelTicks_handler(int8_t p_u8LeftDirection, int8_t p_u8RightDirection, uint32_t p_u16LeftTicks, uint32_t p_u16RightTicks, int16_t p_s16LeftSpeed, int16_t p_s16RightSpeed)
 {
-	wheel_ticks_msg.stamp = nh.now();
+	struct timespec now;
+	clock_gettime(CLOCK_REALTIME, &now);
+	wheel_ticks_msg.stamp.sec = now.tv_sec;
+	wheel_ticks_msg.stamp.nanosec = now.tv_nsec;
 	wheel_ticks_msg.wheel_tick_factor = TICKS_PER_M;
 	wheel_ticks_msg.valid_wheels = 0x0C;
 	wheel_ticks_msg.wheel_direction_fl = 0;
@@ -491,7 +504,7 @@ extern "C" void wheelTicks_handler(int8_t p_u8LeftDirection, int8_t p_u8RightDir
 	wheel_ticks_msg.wheel_direction_rr = (p_u8RightDirection == -1) ? 1 : 0;
 	wheel_ticks_msg.wheel_ticks_rr = p_u16RightTicks;
 
-	pubWheelTicks.publish(&wheel_ticks_msg);
+	RCSOFTCHECK(rcl_publish(&pubWheelTicks, &wheel_ticks_msg, NULL));
 }
 
 extern "C" void broadcast_handler()
@@ -532,12 +545,15 @@ extern "C" void broadcast_handler()
 		imu_msg.angular_velocity.x = imu_msg.angular_velocity.y = imu_msg.angular_velocity.z = 0;
 		imu_msg.angular_velocity_covariance[0] = -1;
 #endif
-		imu_msg.header.stamp = nh.now();
-		pubIMU.publish(&imu_msg);
+		struct timespec now;
+		clock_gettime(CLOCK_REALTIME, &now);
+		imu_msg.stamp.sec = now.tv_sec;
+		imu_msg.stamp.nanosec = now.tv_nsec;
+		RCSOFTCHECK(rcl_publish(pubIMU, &imu_msg, NULL));
 
 #ifdef OPTION_PERIMETER
 		if (Perimeter_UpdateMsg(&om_perimeter_msg.left,&om_perimeter_msg.center,&om_perimeter_msg.right)) {
-			pubPerimeter.publish(&om_perimeter_msg);
+			RCSOFTCHECK(rcl_publish(pubPerimeter, &om_perimeter_msg, NULL));
 		}
 #endif
 	} // if (NBT_handler(&imu_nbt))
@@ -578,10 +594,13 @@ extern "C" void broadcast_handler()
 		status_msg.sw_ver_maj = MOWGLI_SW_VERSION_MAJOR;
 		status_msg.sw_ver_bra = MOWGLI_SW_VERSION_BRANCH;
 		status_msg.sw_ver_min = MOWGLI_SW_VERSION_MINOR;
-		pubStatus.publish(&status_msg);
+		RCSOFTCHECK(rcl_publish(pubStatus, &status_msg, NULL));
 #endif
 
-		om_mower_status_msg.stamp = nh.now();
+		struct timespec now;
+		clock_gettime(CLOCK_REALTIME, &now);
+		om_mower_status_msg.stamp.sec = now.tv_sec;
+		om_mower_status_msg.stamp.nanosec = now.tv_nsec;
 		om_mower_status_msg.mower_status = mower_msgs::Status::MOWER_STATUS_OK;
 		om_mower_status_msg.rain_detected = RAIN_Sense();
 		om_mower_status_msg.emergency = Emergency_State();
@@ -598,7 +617,7 @@ extern "C" void broadcast_handler()
 		om_mower_status_msg.left_esc_status.status = mower_msgs::ESCStatus::ESC_STATUS_OK;
 		om_mower_status_msg.right_esc_status.status = mower_msgs::ESCStatus::ESC_STATUS_OK;
 
-		pubOMStatus.publish(&om_mower_status_msg);
+		RCSOFTCHECK(rcl_publish(pubOMStatus, &om_mower_status_msg, NULL));
 
 	}
 	// if (NBT_handler(&status_nbt))
@@ -650,7 +669,7 @@ extern "C" void spinOnce()
 {
 	if (NBT_handler(&ros_nbt))
 	{
-		nh.spinOnce();
+		rclc_executor_spin(&executor);
 #if OPTION_BUMPER == 1
 		bumper_left_msg.header.stamp = nh.now();
 		bumper_left_msg.header.frame_id = "bumper_left_link";
@@ -669,8 +688,8 @@ extern "C" void spinOnce()
 		bumper_right_msg.max_range = 0.20;
 		bumper_right_msg.range = HALLSTOP_Right_Sense() * 0.05;
 
-		pubLeftBumper.publish(&bumper_left_msg);
-		pubRightBumper.publish(&bumper_right_msg);
+		RCSOFTCHECK(rcl_publish(pubLeftBumper, &bumper_left_msg, NULL));
+		RCSOFTCHECK(rcl_publish(pubRightBumper, &bumper_right_msg, NULL));
 #endif
 	}
 }
@@ -683,7 +702,41 @@ extern "C" void init_ROS()
 	ringbuffer_init(&rb, RxBuffer, RxBufferSize);
 
 	// Initialize ROS
-	nh.initNode();
+	Serial.begin(115200);
+	set_microros_serial_transports(Serial);
+	delay(2000);
+
+	allocator = rcl_get_default_allocator();
+
+	//create init_options
+	RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+	// create node
+	RCCHECK(rclc_node_init_default(&node, "mowgli", "", &support));
+
+	RCCHECK(rclc_publisher_init_default(
+    &pubButtonState,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray),
+    "buttonstate"));
+	
+	RCCHECK(rclc_publisher_init_default(
+    &pubOMStatus,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(mower_msgs, msg, Status),
+    "mower/status"));
+	
+	RCCHECK(rclc_publisher_init_default(
+    &pubWheelTicks,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(xbot_msgs, msg, WheelTick),
+    "mower/wheel_ticks"));
+	
+	RCCHECK(rclc_publisher_init_default(
+    &pubIMU,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
+    "imu/data_raw"));
 	/*set max time to 10ms to give some time to the other functions*/
 	// nh.setSpinTimeout(10);
 #if OPTION_ULTRASONIC == 1
@@ -695,31 +748,53 @@ extern "C" void init_ROS()
 	nh.advertise(pubRightBumper);
 #endif
 
-	nh.advertise(pubButtonState);
-	nh.advertise(pubIMU);
+	//nh.advertise(pubButtonState);
+	//nh.advertise(pubIMU);
 #ifdef ROS_PUBLISH_MOWGLI
 	nh.advertise(pubStatus);
 #endif
-	nh.advertise(pubOMStatus);
-	nh.advertise(pubWheelTicks);
+	//nh.advertise(pubOMStatus);
+	//nh.advertise(pubWheelTicks);
 
 	// Initialize Subscribers
-	nh.subscribe(subCommandVelocity);
-	nh.subscribe(subCommandHighLevelStatus);
+	//("mower_logic/current_state", CommandHighLevelStatusMessageCb)
+	//("cmd_vel", CommandVelocityMessageCb)
+	/*
+	ros::Subscriber<geometry_msgs::Twist> subCommandVelocity("cmd_vel", CommandVelocityMessageCb);
+ros::Subscriber<mower_msgs::HighLevelStatus> subCommandHighLevelStatus("mower_logic/current_state", CommandHighLevelStatusMessageCb);
+*/
+	RCCHECK(rclc_subscription_init_default(
+		&subCommandVelocity,
+		&node,
+		ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+		"cmd_vel"));
+	RCCHECK(rclc_subscription_init_default(
+		&subCommandHighLevelStatus,
+		&node,
+		ROSIDL_GET_MSG_TYPE_SUPPORT(mower_msgs, msg, HighLevelStatus),
+		"mower_logic/current_state"));
 
 	// Initialize Services
 	// nh.advertiseService(svcSetCfg);
 	// nh.advertiseService(svcGetCfg);
-	nh.advertiseService(svcEnableMowerMotor);
-	nh.advertiseService(svcSetEmergency);
-	nh.advertiseService(svcReboot);
-	nh.serviceClient(svcHighLevelControl);
+	/*
+	ros::ServiceServer<mower_msgs::MowerControlSrvRequest, mower_msgs::MowerControlSrvResponse> svcEnableMowerMotor("mower_service/mow_enabled", cbEnableMowerMotor);
+ros::ServiceServer<mower_msgs::EmergencyStopSrvRequest, mower_msgs::EmergencyStopSrvResponse> svcSetEmergency("mower_service/emergency", cbSetEmergency);
+ros::ServiceClient<mower_msgs::HighLevelControlSrvRequest, mower_msgs::HighLevelControlSrvResponse> svcHighLevelControl("mower_service/high_level_control");
+ros::ServiceServer<std_srvs::Empty::Request, std_srvs::Empty::Response> svcReboot("mowgli/Reboot", cbReboot);
+*/
+	RCCHECK(rclc_service_init_default(&service, &node, ROSIDL_GET_SRV_TYPE_SUPPORT(mower_msgs, srv, MowerControlSrv), "/mower_service/mow_enabled"));
+	RCCHECK(rclc_service_init_default(&service, &node, ROSIDL_GET_SRV_TYPE_SUPPORT(mower_msgs, srv, EmergencyStopSrv), "/mower_service/emergency"));
+	RCCHECK(rclc_service_init_default(&service, &node, ROSIDL_GET_SRV_TYPE_SUPPORT(mower_msgs, srv, AddTwoInts), "/mowgli/Reboot"));
+	RCCHECK(rclc_client_init_default(&client, &node, ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, Empty), "/mower_service/high_level_control"));
 
 #ifdef OPTION_PERIMETER
 	nh.advertise(pubPerimeter);
 	nh.advertiseService(svcPerimeterListen);
 #endif
 
+  // create executor
+	  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
 	// Initialize Timers
 	NBT_init(&publish_nbt, 1000);
 	NBT_init(&panel_nbt, 100);
