@@ -70,13 +70,13 @@ extern DMA_HandleTypeDef hdma_uart1_tx;
 extern DMA_HandleTypeDef hdma_uart1_rx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
-extern DMA_HandleTypeDef hdma_uart3_tx;
-extern DMA_HandleTypeDef hdma_uart3_rx;
+extern DMA_HandleTypeDef hdma_uart_blade_tx;
+extern DMA_HandleTypeDef hdma_uart_blade_rx;
 extern DMA_HandleTypeDef hdma_uart4_tx;
 extern DMA_HandleTypeDef hdma_uart4_rx;
 DMA_HandleTypeDef hdma_adc;
 
-extern ADC_HandleTypeDef ADC2_Handle;
+extern ADC_HandleTypeDef ADC_Charging_Handle;
 
 /* USER CODE BEGIN EV */
 
@@ -225,7 +225,7 @@ void SysTick_Handler(void)
   */
   void ADC1_2_IRQHandler(void)
   {
-    HAL_ADC_IRQHandler(&ADC2_Handle);
+    HAL_ADC_IRQHandler(&ADC_Charging_Handle);
   }
 
  
@@ -294,7 +294,7 @@ void DMA1_Channel1_IRQHandler(void)
   */
 void DMA1_Channel2_IRQHandler(void)
 {
-  HAL_DMA_IRQHandler(&hdma_uart3_tx);
+  HAL_DMA_IRQHandler(&hdma_uart_blade_tx);
 }
 
 /**
@@ -302,7 +302,7 @@ void DMA1_Channel2_IRQHandler(void)
   */
 void DMA1_Channel3_IRQHandler(void)
 {
-  HAL_DMA_IRQHandler(&hdma_uart3_rx);
+  HAL_DMA_IRQHandler(&hdma_uart_blade_rx);
 }
 
 /**
