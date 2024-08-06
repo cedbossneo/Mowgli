@@ -91,7 +91,7 @@ This is the software that needs to be compiled and flashed onto the STM32 on the
 ### in case a supported I2C IMU is connected to J18
 
 Currently supported IMUs:
-- [Pololu AltIMU 10v5](https://www.pololu.com/product/2739) other LSM6DS33 based should work too
+- [Pololu AltIMU 10v5](https://www.pololu.com/product/2739) other LSM6DS33 or LSM6DSO based should work too
 - [WT901]()
 - [MPU6050]()
 
