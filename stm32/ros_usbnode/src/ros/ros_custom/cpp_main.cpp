@@ -23,7 +23,7 @@
 #include "drivemotor.h"
 #include "blademotor.h"
 #include "ultrasonic_sensor.h"
-#include "stm32f1xx_hal.h"
+#include "stm32f_board_hal.h"
 #include "ringbuffer.h"
 #include "ros.h"
 #include "ros/time.h"

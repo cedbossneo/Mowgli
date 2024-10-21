@@ -64,7 +64,7 @@ USBD_HandleTypeDef hUsbDeviceFS;
 void MX_USB_DEVICE_Init(void)
 {
   /* USER CODE BEGIN USB_DEVICE_Init_PreTreatment */
-
+#if !(BOARD_YARDFORCE500_VARIANT_B)
   /* Rendering hardware reset harmless (no need to replug USB cable): */
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
@@ -82,6 +82,7 @@ void MX_USB_DEVICE_Init(void)
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   HAL_Delay(5);
+#endif
   /* Hardware reset rendered harmless! */
 
   /* USER CODE END USB_DEVICE_Init_PreTreatment */
