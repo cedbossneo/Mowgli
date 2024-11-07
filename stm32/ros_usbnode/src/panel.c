@@ -121,8 +121,8 @@ void PANEL_Init(void)
 #if BOARD_YARDFORCE500_VARIANT_ORIG
     hdma_uart1_rx.Instance = DMA1_Channel5;
 #elif BOARD_YARDFORCE500_VARIANT_B
-	hdma_uart1_rx.Instance = DMA1_Stream0;
-	hdma_uart1_rx.Init.Channel = DMA_CHANNEL_3;
+	hdma_uart1_rx.Instance = DMA2_Stream5;
+	hdma_uart1_rx.Init.Channel = DMA_CHANNEL_4;
 	hdma_uart1_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
 #endif
     hdma_uart1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
@@ -144,8 +144,8 @@ void PANEL_Init(void)
 #if BOARD_YARDFORCE500_VARIANT_ORIG
     hdma_uart1_tx.Instance = DMA1_Channel4;
 #elif BOARD_YARDFORCE500_VARIANT_B
-	hdma_uart1_tx.Instance = DMA1_Stream1;
-	hdma_uart1_tx.Init.Channel = DMA_CHANNEL_3;
+	hdma_uart1_tx.Instance = DMA2_Stream7;
+	hdma_uart1_tx.Init.Channel = DMA_CHANNEL_4;
 	hdma_uart1_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
 #endif
     hdma_uart1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
