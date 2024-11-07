@@ -18,6 +18,8 @@ namespace mower_msgs
       _current_type current;
       typedef uint32_t _tacho_type;
       _tacho_type tacho;
+      typedef int16_t _rpm_type;
+      _rpm_type rpm;
       typedef float _temperature_motor_type;
       _temperature_motor_type temperature_motor;
       typedef float _temperature_pcb_type;
@@ -32,6 +34,7 @@ namespace mower_msgs
       status(0),
       current(0),
       tacho(0),
+      rpm(0),
       temperature_motor(0),
       temperature_pcb(0)
     {
@@ -57,6 +60,14 @@ namespace mower_msgs
       *(outbuffer + offset + 2) = (this->tacho >> (8 * 2)) & 0xFF;
       *(outbuffer + offset + 3) = (this->tacho >> (8 * 3)) & 0xFF;
       offset += sizeof(this->tacho);
+      union {
+        int16_t real;
+        uint16_t base;
+      } u_rpm;
+      u_rpm.real = this->rpm;
+      *(outbuffer + offset + 0) = (u_rpm.base >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (u_rpm.base >> (8 * 1)) & 0xFF;
+      offset += sizeof(this->rpm);
       union {
         float real;
         uint32_t base;
@@ -102,6 +113,15 @@ namespace mower_msgs
       this->tacho |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
       offset += sizeof(this->tacho);
       union {
+        int16_t real;
+        uint16_t base;
+      } u_rpm;
+      u_rpm.base = 0;
+      u_rpm.base |= ((uint16_t) (*(inbuffer + offset + 0))) << (8 * 0);
+      u_rpm.base |= ((uint16_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      this->rpm = u_rpm.real;
+      offset += sizeof(this->rpm);
+      union {
         float real;
         uint32_t base;
       } u_temperature_motor;
@@ -127,8 +147,7 @@ namespace mower_msgs
     }
 
     virtual const char * getType() override { return "mower_msgs/ESCStatus"; };
-    virtual const char * getMD5() override { return "076a91f0c3f76fb0d32fd787c7167fec"; };
-
+    virtual const char * getMD5() override { return "dbda697be744eb1134b10982a99ce3ed"; };
   };
 
 }
