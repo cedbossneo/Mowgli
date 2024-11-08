@@ -28,7 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx_hal.h"
-
+#include <stdbool.h> 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
