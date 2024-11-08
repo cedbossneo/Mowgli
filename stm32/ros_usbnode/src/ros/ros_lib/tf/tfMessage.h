@@ -22,6 +22,9 @@ namespace tf
       transforms_length(0), st_transforms(), transforms(nullptr)
     {
     }
+    virtual ~tfMessage() {
+      delete[] transforms;
+    }
 
     virtual int serialize(unsigned char *outbuffer) const override
     {
@@ -45,12 +48,14 @@ namespace tf
       transforms_lengthT |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2); 
       transforms_lengthT |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3); 
       offset += sizeof(this->transforms_length);
-      if(transforms_lengthT > transforms_length)
-        this->transforms = (geometry_msgs::TransformStamped*)realloc(this->transforms, transforms_lengthT * sizeof(geometry_msgs::TransformStamped));
+      if (transforms_lengthT != transforms_length) {
+        delete[] this->transforms;  // Libérer l'ancienne mémoire
+        this->transforms = new geometry_msgs::TransformStamped[transforms_lengthT];  // Allouer la nouvelle mémoire
+      }
       transforms_length = transforms_lengthT;
       for( uint32_t i = 0; i < transforms_length; i++){
       offset += this->st_transforms.deserialize(inbuffer + offset);
-        memcpy( &(this->transforms[i]), &(this->st_transforms), sizeof(geometry_msgs::TransformStamped));
+        this->transforms[i] = this->st_transforms; // Assignation directe
       }
      return offset;
     }
