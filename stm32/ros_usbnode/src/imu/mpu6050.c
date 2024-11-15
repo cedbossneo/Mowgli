@@ -33,7 +33,7 @@ uint8_t MPU6050_TestDevice(uint8_t address)
   uint8_t val;
   /* Test who am I */
   val = SW_I2C_UTIL_Read(address, MPU6050_WHO_AM_I);
-  if (val == MPU9255_WHO_AM_I || val == MPU9250_WHO_AM_I || val == MPU6500_WHO_AM_I || val == 0x68 || val == 0x73) {
+  if (val == MPU9255_WHO_AM_I || val == MPU9250_WHO_AM_I || val == MPU6500_WHO_AM_I || val == 0x73) {
       return 1;
   }
   debug_printf("    > [MPU] - Error probing for (Gyro / Accelerometer) at I2C addr=0x%0x %x\r\n", address, val);
