@@ -47,6 +47,10 @@ extern "C" {
 
  void TIM1_Init(void);
 
+ /**
+  * Sets the charge limit.
+  */
+ void charger_set_end_voltage(float v);
 
 
 #ifdef __cplusplus

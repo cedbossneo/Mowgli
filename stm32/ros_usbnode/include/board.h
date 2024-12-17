@@ -70,12 +70,10 @@ extern "C"
 
 /// nominal max charge current is 1.0 Amp
 #define MAX_CHARGE_CURRENT 1.0f
-/// limite voltag when switching in 150mA mode
-#define LIMIT_VOLTAGE_150MA 28.0f
 /// Max voltage allowed 29.4
-#define MAX_CHARGE_VOLTAGE 29.0f
-/// Max battery voltage allowed
-#define BAT_CHARGE_CUTOFF_VOLTAGE 28.0f
+#define MAX_CHARGE_VOLTAGE 29.4f
+/// Default max battery voltage allowed
+#define BAT_CHARGE_DEFAULT_CUTOFF_VOLTAGE 28.0f
 /// We consider the battery is full when in CV mode the current below 0.1A
 #define CHARGE_END_LIMIT_CURRENT 0.08f
 // if voltage is greater than this assume we are docked

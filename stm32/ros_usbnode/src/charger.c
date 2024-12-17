@@ -47,6 +47,9 @@ float SOC                           = 0;
 uint16_t chargecontrol_pwm_val      = 0;
 uint8_t  chargecontrol_is_charging  = 0;
 
+static CHARGER_STATE_e charger_state = CHARGER_STATE_IDLE;
+static float charge_end_voltage=BAT_CHARGE_DEFAULT_CUTOFF_VOLTAGE;
+
 /******************************************************************************
  * Function Prototypes
  *******************************************************************************/
@@ -149,6 +152,20 @@ uint8_t  chargecontrol_is_charging  = 0;
   DB_TRACE(" * Charge Controler PWM Timers initialized\r\n");
 }
 
+ void charger_set_end_voltage(float v) {
+    /* Limit input to reasonable values. */
+    if (v>MAX_CHARGE_VOLTAGE) {
+      v=MAX_CHARGE_VOLTAGE;
+    } else if (v<LOW_BAT_THRESHOLD) {
+      v=LOW_BAT_THRESHOLD;
+    }
+    /* Go back to constant current, if voltage is increased. */
+    if (v>charge_end_voltage && charger_state==CHARGER_STATE_CHARGING_CV) {
+      charger_state=CHARGER_STATE_CHARGING_CC;
+    }
+    charge_end_voltage=v;
+ }
+
 /*
  * manages the charge voltage, and charge, lowbat LED
  * improvementt need to be done to avoid sparks when connected charger and disconnected 
@@ -157,7 +174,6 @@ uint8_t  chargecontrol_is_charging  = 0;
  */
 void ChargeController(void)
 {                        
-  static CHARGER_STATE_e charger_state = CHARGER_STATE_IDLE;
   static uint32_t timestamp = 0;
 
   /*charger disconnected force idle state*/
@@ -188,16 +204,16 @@ void ChargeController(void)
 
     case CHARGER_STATE_CHARGING_CC:
         // cap charge current at 1.5 Amps
-        if ((battery_voltage > BAT_CHARGE_CUTOFF_VOLTAGE && (chargecontrol_pwm_val > 0)) || ((current > MAX_CHARGE_CURRENT) && (chargecontrol_pwm_val > 39)))
+        if ((battery_voltage > charge_end_voltage && (chargecontrol_pwm_val > 0)) || ((current > MAX_CHARGE_CURRENT) && (chargecontrol_pwm_val > 39)))
         {
             chargecontrol_pwm_val--;
         }
-        if ((battery_voltage < BAT_CHARGE_CUTOFF_VOLTAGE) && (current < MAX_CHARGE_CURRENT) && (chargecontrol_pwm_val < 1350))
+        if ((battery_voltage < charge_end_voltage) && (current < MAX_CHARGE_CURRENT) && (chargecontrol_pwm_val < 1350))
         {
             chargecontrol_pwm_val++;
         }
 
-        if(charge_voltage >= (LIMIT_VOLTAGE_150MA )){
+        if(charge_voltage >= charge_end_voltage) {
             charger_state = CHARGER_STATE_CHARGING_CV;
         }
 
@@ -205,11 +221,11 @@ void ChargeController(void)
 
     case CHARGER_STATE_CHARGING_CV:
         // set PWM to approach 29.4V  charge voltage
-        if ((battery_voltage < BAT_CHARGE_CUTOFF_VOLTAGE) && (charge_voltage < (MAX_CHARGE_VOLTAGE)) && (chargecontrol_pwm_val < 1350))
+        if ((battery_voltage < charge_end_voltage) && (charge_voltage < (MAX_CHARGE_VOLTAGE)) && (chargecontrol_pwm_val < 1350))
         {
           chargecontrol_pwm_val++;
         }            
-        if ((battery_voltage > BAT_CHARGE_CUTOFF_VOLTAGE && (chargecontrol_pwm_val > 0)) || (charge_voltage > (MAX_CHARGE_VOLTAGE) && (chargecontrol_pwm_val > 39)))
+        if ((battery_voltage > charge_end_voltage && (chargecontrol_pwm_val > 0)) || (charge_voltage > (MAX_CHARGE_VOLTAGE) && (chargecontrol_pwm_val > 39)))
         {
           chargecontrol_pwm_val--;
         }
