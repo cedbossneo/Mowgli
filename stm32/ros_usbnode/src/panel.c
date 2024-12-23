@@ -43,14 +43,24 @@ static uint8_t Frame_Received_Panel = 0;
 #if PANEL_TYPE == PANEL_TYPE_YARDFORCE_900_ECO
     const uint8_t KEY_INIT_MSG[] = {0x03, 0x90, 0x28};     
 #elif PANEL_TYPE == PANEL_TYPE_YARDFORCE_500_CLASSIC
-    const uint8_t KEY_INIT_MSG[] = {0x06, 0x50, 0xe0};       
+    const uint8_t KEY_INIT_MSG[] = {0x06, 0x50, 0xe0};
+#elif PANEL_TYPE == PANEL_TYPE_YARDFORCE_500B_CLASSIC
+    const uint8_t KEY_INIT_MSG[] = {0x06, 0x50, 0x22};      
 #elif PANEL_TYPE == PANEL_TYPE_YARDFORCE_LUV1000RI
     const uint8_t KEY_INIT_MSG[] = {0x03, 0x99, 0x21};
 #else 
     #error "No panel type define in board.h"
 #endif
-
+#if PANEL_TYPE == PANEL_TYPE_YARDFORCE_900_ECO \
+ || PANEL_TYPE == PANEL_TYPE_YARDFORCE_500_CLASSIC \
+ || PANEL_TYPE == PANEL_TYPE_YARDFORCE_LUV1000RI
 const uint8_t KEY_ACTIVATE[] = {0x0, 0x0, 0x1};
+#elif PANEL_TYPE == PANEL_TYPE_YARDFORCE_500B_CLASSIC
+const uint8_t KEY_ACTIVATE[] = {0x0, 0xFF, 0x1};
+#else 
+    #error "No panel type define in board.h"
+#endif      
+
 static uint8_t panel_pu8ReceivedData[50] = {0};
 static uint8_t panel_pu8RqstMessage[50]  = {0};
 
@@ -271,7 +281,8 @@ void PANEL_Tick(void)
 
 void PANEL_SendLEDMessage(void){
     uint8_t ptr = 0;
-    uint8_t crc = 0;
+    uint8_t ptr_beginScndMsg = 0;
+/*    uint8_t crc = 0; */
 
     while( __HAL_UART_GET_FLAG(&PANEL_USART_Handler, USART_FLAG_TC) != 1);
 
@@ -285,14 +296,8 @@ void PANEL_SendLEDMessage(void){
     {
         panel_pu8RqstMessage[ptr++] = Led_States[i];
     }
-
-
-    for (int i = 0; i < LED_STATE_SIZE + 5; ++i)
-    {
-        crc += panel_pu8RqstMessage[i];
-    }
-    panel_pu8RqstMessage[ptr++] = crc;
-
+    panel_pu8RqstMessage[ptr++] = crcCalc(panel_pu8RqstMessage,LED_STATE_SIZE + 5);
+    ptr_beginScndMsg = ptr;
     panel_pu8RqstMessage[ptr++] = 0x55;
     panel_pu8RqstMessage[ptr++] = 0xaa;
     panel_pu8RqstMessage[ptr++] = 0x05;
@@ -301,7 +306,7 @@ void PANEL_SendLEDMessage(void){
     panel_pu8RqstMessage[ptr++] = KEY_ACTIVATE[0];
     panel_pu8RqstMessage[ptr++] = KEY_ACTIVATE[1];
     panel_pu8RqstMessage[ptr++] = KEY_ACTIVATE[2];
-    panel_pu8RqstMessage[ptr++] = 0xD9; /* will change if key change */
+    panel_pu8RqstMessage[ptr++] = crcCalc(&panel_pu8RqstMessage[ptr_beginScndMsg],8); /* will change if key change */
 
 #ifdef PANEL_USART_ENABLED
     HAL_UART_Transmit_DMA(&PANEL_USART_Handler, (uint8_t*)&panel_pu8RqstMessage[0], ptr); 

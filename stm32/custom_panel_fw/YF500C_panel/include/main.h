@@ -28,6 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx_hal.h"
+#include <stdbool.h>  // Ajoutez cette ligne pour utiliser bool, true et false
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

@@ -1,13 +1,22 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "PlatformIO",
-			"task": "Upload (Yardforce 500 (STM32F103 VCT6))",
-			"problemMatcher": [
-				"$platformio"
-			],
-			"label": "PlatformIO: Upload (Yardforce 500 (STM32F103 VCT6))"
-		}
-	]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "command": "platformio",
+            "args": [
+                "run",
+                "--target",
+                "upload"
+            ],
+            "label": "PlatformIO: Upload (Yardforce 500 (STM32F103 VCT6))",
+            "problemMatcher": [
+                "$platformio"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
 }

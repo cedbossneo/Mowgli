@@ -55,7 +55,7 @@ extern ADC_HandleTypeDef ADC_Handle;
 *******************************************************************************/
 void Perimeter_vApp(void);
 void PERIMETER_vITHandle(void);
-
+void Perimeter_vInit(void);
 /**
  * @brief Which signal should we listen on?
  * @param sig 0=off, 1=S1, 2=S2 (129, 130=S1,S2 plus debug output).
