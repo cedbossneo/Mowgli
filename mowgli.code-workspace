@@ -10,5 +10,9 @@
             "path": "./stm32/custom_panel_fw/YF500C_panel"
         }
     ],
-    "settings": {}
+    "settings": {
+        "stm32-for-vscode.openOCDPath": false,
+        "stm32-for-vscode.makePath": false,
+        "stm32-for-vscode.armToolchainPath": false
+    }
 }
