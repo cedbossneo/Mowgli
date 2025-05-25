@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <ros/time.h>
 
 namespace ros
 {
@@ -200,6 +201,89 @@ public:
       var |= (arr[i] << (8 * i));
   }
 
+  static int serializeFloat(unsigned char* outbuffer,const float f) {
+      union {
+        float real;
+        uint32_t base;
+      } u_data;
+      u_data.real = f;
+      *(outbuffer + 0) = (u_data.base >> (8 * 0)) & 0xFF;
+      *(outbuffer + 1) = (u_data.base >> (8 * 1)) & 0xFF;
+      *(outbuffer + 2) = (u_data.base >> (8 * 2)) & 0xFF;
+      *(outbuffer + 3) = (u_data.base >> (8 * 3)) & 0xFF;
+      return sizeof(f);
+  }
+
+  static int deserializeFloat(unsigned char *inbuffer,float *f) {
+      union {
+        float real;
+        uint32_t base;
+      } u_data;
+      u_data.base = 0;
+      u_data.base |= ((uint32_t) (*(inbuffer + 0))) << (8 * 0);
+      u_data.base |= ((uint32_t) (*(inbuffer + 1))) << (8 * 1);
+      u_data.base |= ((uint32_t) (*(inbuffer + 2))) << (8 * 2);
+      u_data.base |= ((uint32_t) (*(inbuffer + 3))) << (8 * 3);
+      *f=u_data.real;
+      return sizeof(u_data.real);
+    }
+
+  static int serializeUint8(unsigned char* outbuffer,const uint8_t v) {
+      *(outbuffer)= v;
+      return sizeof(v);
+  }
+
+  static int deserializeUint8(unsigned char *inbuffer,uint8_t *v) {
+      *v=*(inbuffer);
+      return 1;
+  }
+
+  static int serializeUint32(unsigned char* outbuffer,const uint32_t v) {
+      *(outbuffer + 0) = (v >> (8 * 0)) & 0xFF;
+      *(outbuffer + 1) = (v >> (8 * 1)) & 0xFF;
+      *(outbuffer + 2) = (v >> (8 * 2)) & 0xFF;
+      *(outbuffer + 3) = (v >> (8 * 3)) & 0xFF;
+      return sizeof(v);
+  }
+
+  static int deserializeUint32(unsigned char *inbuffer,uint32_t *v) {
+      uint32_t base;
+      base = ((uint32_t) (*(inbuffer + 0))) << (8 * 0);
+      base |= ((uint32_t) (*(inbuffer + 1))) << (8 * 1);
+      base |= ((uint32_t) (*(inbuffer + 2))) << (8 * 2);
+      base |= ((uint32_t) (*(inbuffer + 3))) << (8 * 3);
+      *v = base;
+      return sizeof(base);
+  }
+
+  static int serializeString(unsigned char *outbuffer,const char* v) {
+      uint32_t len = strlen(v);
+      int offset=serializeUint32(outbuffer,len);
+      memcpy(outbuffer + offset, v, len);
+      return offset+len;
+  }
+
+  static int deserializeString(unsigned char *inbuffer,const char **v) {
+      uint32_t len;
+      int offset=deserializeUint32(inbuffer,&len);
+      *v=(const char *)(inbuffer);
+      memmove((char*) *v,inbuffer+offset,len);
+      inbuffer[len]=0;
+      return offset+len;
+  }
+
+  static int serializeTime(unsigned char *outbuffer,const Time &v) {
+    int offset=serializeUint32(outbuffer,v.sec);
+    offset+=serializeUint32(outbuffer+offset,v.nsec);
+    return offset;
+  }
+
+  static int deserializeTime(unsigned char *inbuffer,Time *v) {
+    int offset=deserializeUint32(inbuffer,&(v->sec));
+    offset+=deserializeUint32(inbuffer+offset,&(v->nsec));
+    return offset;
+  }
+  
 };
 
 }  // namespace ros
