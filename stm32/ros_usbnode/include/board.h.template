@@ -47,7 +47,7 @@ extern "C"
 #define PANEL_TYPE_YARDFORCE_LUV1000RI 2
 #define PANEL_TYPE_YARDFORCE_900_ECO 3
 
-#if defined BOARD_YARDFORCE500_VARIANT_ORIG
+#ifdef BOARD_YARDFORCE500_VARIANT_ORIG
 ///////////////////////////
 // Yardforce 500 CLASSIC //
 ///////////////////////////
@@ -60,7 +60,7 @@ extern "C"
 #define OPTION_BUMPER 0
 #define BOARD_HAS_MASTER_USART 1
 
-#elif defined BOARD_YARDFORCE500_VARIANT_B
+#elif BOARD_YARDFORCE500_VARIANT_B
 /////////////////////
 // Yardforce 500 B //
 /////////////////////
