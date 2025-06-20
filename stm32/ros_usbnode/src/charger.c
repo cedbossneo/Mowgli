@@ -43,7 +43,7 @@ typedef enum{
 
 TIM_HandleTypeDef TIM1_Handle;  // PWM Charge Controller
 
-float SOC                           = 0;
+float SOC                           = 0.0f;
 uint16_t chargecontrol_pwm_val      = 0;
 uint8_t  chargecontrol_is_charging  = 0;
 

@@ -25,80 +25,84 @@ extern "C"
 #define DEBUG_TYPE_UART 1
 #define DEBUG_TYPE_SWO 2
 
-/* Publish Mowgli Topics */
-//#define ROS_PUBLISH_MOWGLI
+/////////////////////////
+// OPTIONNAL FUNCTIONS //
+/////////////////////////
+//#define I_DONT_NEED_MY_FINGERS   1   // disables EmergencyController() (no wheel lift, or tilt sensing and stopping the blade anymore)
+//#define EMERGENCY_DEBUG                // Enable Emergency debugging
+//#define ROS_PUBLISH_MOWGLI             // Publish Mowgli Topics //
 
+
+// Force disable IMU to be detected - CURRENTLY THIS SETTING DOES NOT WORK!
+//#define DISABLE_LSM6
+//#define DISABLE_MPU6050
+//#define DISABLE_WT901
+
+/////////////
+// PANNEL //
+////////////
 /* different type of panel are possible */
 #define PANEL_TYPE_NONE 0
 #define PANEL_TYPE_YARDFORCE_500_CLASSIC 1
 #define PANEL_TYPE_YARDFORCE_LUV1000RI 2
 #define PANEL_TYPE_YARDFORCE_900_ECO 3
+#define MAX_MPS 0.3		  // Allow maximum speed of 1.0 m/s
+#define PWM_PER_MPS 300.0 // PWM value of 300 means 1 m/s bot speed so we divide by 4 to have correct robot speed but still progressive speed
+#define TICKS_PER_M 300.0 // Motor Encoder ticks per meter
+#define WHEEL_BASE  0.325	
 
+//////////////////////////////////////
+// Yardforce 500 CLASSIC / SA SERIE //
+//////////////////////////////////////
 #if BOARD_YARDFORCE500_VARIANT_ORIG
-///////////////////////////
-// Yardforce 500 CLASSIC //
-///////////////////////////
 #define BLADEMOTOR_USART_INSTANCE USART3
-
 #define VALID_BOARD_DEFINED 1
 #define PANEL_TYPE PANEL_TYPE_YARDFORCE_500_CLASSIC
 #define BLADEMOTOR_LENGTH_RECEIVED_MSG 16
 #define DEBUG_TYPE DEBUG_TYPE_UART
-
-#define MAX_MPS 0.5		  // Allow maximum speed of 1.0 m/s
-#define PWM_PER_MPS 300.0 // PWM value of 300 means 1 m/s bot speed so we divide by 4 to have correct robot speed but still progressive speed
-#define TICKS_PER_M 300.0 // Motor Encoder ticks per meter
-#define WHEEL_BASE  0.325		// The distance between the center of the wheels in meters
-
+#define BOARD_HAS_MASTER_USART 1
+// The distance between the center of the wheels in meters
 #define OPTION_ULTRASONIC 0
 #define OPTION_BUMPER 0
 
-#define BOARD_HAS_MASTER_USART 1
-#elif BOARD_YARDFORCE500_VARIANT_B
 /////////////////////
 // Yardforce 500 B //
 /////////////////////
-
+#elif BOARD_YARDFORCE500_VARIANT_B
 // TODO: Are those options valid?
 #define BLADEMOTOR_USART_INSTANCE USART6
-
 #define VALID_BOARD_DEFINED 1
 #define PANEL_TYPE PANEL_TYPE_YARDFORCE_500_CLASSIC
 #define BLADEMOTOR_LENGTH_RECEIVED_MSG 16
 #define DEBUG_TYPE DEBUG_TYPE_SWO
-
-#define MAX_MPS 0.5		  // Allow maximum speed of 1.0 m/s
-#define PWM_PER_MPS 300.0 // PWM value of 300 means 1 m/s bot speed so we divide by 4 to have correct robot speed but still progressive speed
-#define TICKS_PER_M 300.0 // Motor Encoder ticks per meter
-#define WHEEL_BASE  0.325		// The distance between the center of the wheels in meters
-
 #define OPTION_ULTRASONIC 0
 #define OPTION_BUMPER 0
+
+//////////////////////////
+// Yardforce LUV 1000RI //
+//////////////////////////
 #elif defined(BOARD_LUV1000RI) // TODO: This currently can't be selected via platformio
 #define PANEL_TYPE PANEL_TYPE_YARDFORCE_LUV1000RI
 #define BLADEMOTOR_LENGTH_RECEIVED_MSG 14
-
 #define DEBUG_TYPE 0
-
+#define BOARD_HAS_MASTER_USART 0
 #define OPTION_ULTRASONIC 1
 #define OPTION_BUMPER 0
-
-#define MAX_MPS 0.5		  // Allow maximum speed of 1.0 m/s
-#define PWM_PER_MPS 300.0 // PWM value of 300 means 1 m/s bot speed so we divide by 4 to have correct robot speed but still progressive speed
-#define TICKS_PER_M 300.0 // Motor Encoder ticks per meter
-#define WHEEL_BASE 0.285   // The distance between the center of the wheels in meters
-
-#define BOARD_HAS_MASTER_USART 0
 #endif
 
-//#define I_DONT_NEED_MY_FINGERS              1      // disables EmergencyController() (no wheel lift, or tilt sensing and stopping the blade anymore)
-
+//////////////////////////////////////////////////////
+//                CHARGER  PARAMETERS               //
+//   !!!!!!!!!!!!  WARNING WITH THIS  !!!!!!!!!!!!  //
+//                                                  //
+//////////////////////////////////////////////////////
 /// nominal max charge current is 1.0 Amp
-#define MAX_CHARGE_CURRENT 1.0f
+#define MAX_CHARGE_CURRENT 1.4f
+/// limite voltag when switching in 150mA mode
+#define LIMIT_VOLTAGE_150MA 28.9f
 /// Max voltage allowed 29.4
-#define MAX_CHARGE_VOLTAGE 29.4f
-/// Default max battery voltage allowed
-#define BAT_CHARGE_CUTOFF_VOLTAGE  28.0f
+#define MAX_CHARGE_VOLTAGE 29.2f
+/// Max battery voltage allowed
+#define BAT_CHARGE_CUTOFF_VOLTAGE 29.15f
 /// We consider the battery is full when in CV mode the current below 0.1A
 #define CHARGE_END_LIMIT_CURRENT 0.08f
 // if voltage is greater than this assume we are docked
@@ -108,8 +112,8 @@ extern "C"
 
 // if current is greater than this assume the battery is charging
 #define MIN_CHARGE_CURRENT 0.1f
-#define LOW_BAT_THRESHOLD 25.2f /* near 20% SOC */
-#define LOW_CRI_THRESHOLD 23.5f /* near 0% SOC */
+#define LOW_BAT_THRESHOLD 24.8f /* near 20% SOC */
+#define LOW_CRI_THRESHOLD 21.5f /* near 0% SOC */
 
 // Emergency sensor timeouts
 #define ONE_WHEEL_LIFT_EMERGENCY_MILLIS 10000
@@ -119,17 +123,9 @@ extern "C"
 #define PLAY_BUTTON_CLEAR_EMERGENCY_MILLIS 2000
 #define IMU_ONBOARD_INCLINATION_THRESHOLD 0x38 // stock firmware uses 0x2C (way more allowed inclination)
 
-// Enable Emergency debugging
-//#define EMERGENCY_DEBUG
-
 // IMU configuration options
 #define EXTERNAL_IMU_ACCELERATION  1
 #define EXTERNAL_IMU_ANGULAR       1
-
-// Force disable IMU to be detected - CURRENTLY THIS SETTING DOES NOT WORK!
-//#define DISABLE_LSM6
-//#define DISABLE_MPU6050
-//#define DISABLE_WT901
 
 // we use J18 (Red 9 pin connector as Master Serial Port)
 #define MASTER_J18 1

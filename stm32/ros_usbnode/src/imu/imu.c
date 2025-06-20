@@ -25,30 +25,30 @@ IMU_ReadAccelerometerRaw imuReadAccelerometerRaw=NULL;
 IMU_ReadGyroRaw imuReadGyroRaw=NULL;
 
 /* accelerometer calibration values */
-float imu_cal_ax = 0.0;
-float imu_cal_ay = 0.0;
-float imu_cal_az = 0.0;
+float imu_cal_ax = 0.0f;
+float imu_cal_ay = 0.0f;
+float imu_cal_az = 0.0f;
 /* gyro calibration values */
-float imu_cal_gx = 0.0;
-float imu_cal_gy = 0.0;
-float imu_cal_gz = 0.0;
+float imu_cal_gx = 0.0f;
+float imu_cal_gy = 0.0f;
+float imu_cal_gz = 0.0f;
 /* onboard accelerometer calibration values */
-float onboard_imu_cal_ax = 0.0;
-float onboard_imu_cal_ay = 0.0;
-float onboard_imu_cal_az = 0.0;
+float onboard_imu_cal_ax = 0.0f;
+float onboard_imu_cal_ay = 0.0f;
+float onboard_imu_cal_az = 0.0f;
 
 /* covariance matrixes for IMU data */
-float imu_cov_ax = 0.01;
-float imu_cov_ay = 0.01;
-float imu_cov_az = 0.01;
+float imu_cov_ax = 0.01f;
+float imu_cov_ay = 0.01f;
+float imu_cov_az = 0.01f;
 // ---------------------
-float imu_cov_gx = 0.1;
-float imu_cov_gy = 0.1;
-float imu_cov_gz = 0.1;
+float imu_cov_gx = 0.1f;
+float imu_cov_gy = 0.1f;
+float imu_cov_gz = 0.1f;
 // ---------------------
-float onboard_imu_cov_ax = 0.01;
-float onboard_imu_cov_ay = 0.01;
-float onboard_imu_cov_az = 0.01;
+float onboard_imu_cov_ax = 0.01f;
+float onboard_imu_cov_ay = 0.01f;
+float onboard_imu_cov_az = 0.01f;
 // ---------------------
 
 static int assertAccelerometer() {
@@ -186,9 +186,12 @@ void IMU_CalibrateExternal()
       stddev_x = stddev_y = stddev_z = 0;
       for (i=0; i<IMU_CAL_SAMPLES; i++)
       {
-          stddev_x += pow(imu_sample_x[i] - mean_x, 2);
-          stddev_y += pow(imu_sample_y[i] - mean_y, 2);
-          stddev_z += pow(imu_sample_z[i] - mean_z, 2);        
+          float dx = imu_sample_x[i] - mean_x;
+          float dy = imu_sample_y[i] - mean_y;
+          float dz = imu_sample_z[i] - mean_z;
+          stddev_x += dx * dx;
+          stddev_y += dy * dy;
+          stddev_z += dz * dz;                
       }
       imu_cov_ax = stddev_x / IMU_CAL_SAMPLES;
       imu_cov_ay = stddev_y / IMU_CAL_SAMPLES;
@@ -219,9 +222,12 @@ void IMU_CalibrateExternal()
       stddev_x = stddev_y = stddev_z = 0;
       for (i=0; i<IMU_CAL_SAMPLES; i++)
       {
-        stddev_x += pow(imu_sample_x[i] - mean_x, 2);
-        stddev_y += pow(imu_sample_y[i] - mean_y, 2);
-        stddev_z += pow(imu_sample_z[i] - mean_z, 2);        
+          float dx = imu_sample_x[i] - mean_x;
+          float dy = imu_sample_y[i] - mean_y;
+          float dz = imu_sample_z[i] - mean_z;
+          stddev_x += dx * dx;
+          stddev_y += dy * dy;
+          stddev_z += dz * dz;         
       }
       imu_cov_gx = stddev_x / IMU_CAL_SAMPLES;
       imu_cov_gy = stddev_y / IMU_CAL_SAMPLES;
@@ -262,9 +268,12 @@ void IMU_CalibrateOnboard()
     stddev_x = stddev_y = stddev_z = 0;
     for (i=0; i<IMU_CAL_SAMPLES; i++)
     {
-        stddev_x += pow(imu_sample_x[i] - mean_x, 2);
-        stddev_y += pow(imu_sample_y[i] - mean_y, 2);
-        stddev_z += pow(imu_sample_z[i] - mean_z, 2);        
+          float dx = imu_sample_x[i] - mean_x;
+          float dy = imu_sample_y[i] - mean_y;
+          float dz = imu_sample_z[i] - mean_z;
+          stddev_x += dx * dx;
+          stddev_y += dy * dy;
+          stddev_z += dz * dz;        
     }
     onboard_imu_cov_ax = stddev_x / IMU_CAL_SAMPLES;
     onboard_imu_cov_ay = stddev_y / IMU_CAL_SAMPLES;
@@ -284,38 +293,28 @@ void IMU_Init() {
   imuReadAccelerometerRaw=NULL;
   imuReadGyroRaw=NULL;
 
-  uint32_t l_u32Timestamp = HAL_GetTick();
-while (imuReadAccelerometerRaw == NULL && ((HAL_GetTick() - l_u32Timestamp) < 20000) )
-{
-  #ifndef DISABLE_LSM6
-    if (LSM6_TestDevice()) {
-      LSM6_Init();
-      imuReadAccelerometerRaw=LSM6_ReadAccelerometerRaw;
-      imuReadGyroRaw=LSM6_ReadGyroRaw;
-    }
-  #endif
+#ifndef DISABLE_LSM6
+  if (LSM6_TestDevice()) {
+    LSM6_Init();
+    imuReadAccelerometerRaw=LSM6_ReadAccelerometerRaw;
+    imuReadGyroRaw=LSM6_ReadGyroRaw;
+  }
+#endif
 
-  #ifndef DISABLE_WT901
-    if ((!imuReadGyroRaw || !imuReadAccelerometerRaw) && WT901_TestDevice()) {
-      WT901_Init();
-      imuReadAccelerometerRaw=WT901_ReadAccelerometerRaw;
-      imuReadGyroRaw=WT901_ReadGyroRaw;
-    }
-  #endif
+#ifndef DISABLE_WT901
+  if ((!imuReadGyroRaw || !imuReadAccelerometerRaw) && WT901_TestDevice()) {
+    WT901_Init();
+    imuReadAccelerometerRaw=WT901_ReadAccelerometerRaw;
+    imuReadGyroRaw=WT901_ReadGyroRaw;
+  }
+#endif
 
-  #ifndef DISABLE_MPU6050
-    if ((!imuReadGyroRaw || !imuReadAccelerometerRaw) && MPU6050_TestDevice()) {
-      MPU6050_Init();
-      imuReadAccelerometerRaw=MPU6050_ReadAccelerometerRaw;
-      imuReadGyroRaw=MPU6050_ReadGyroRaw;
-    }
-  #endif
-
-  HAL_Delay(20);
-}
-
-if(imuReadAccelerometerRaw == NULL){
-  chirp(10);
-}
+#ifndef DISABLE_MPU6050
+  if ((!imuReadGyroRaw || !imuReadAccelerometerRaw) && MPU6050_TestDevice()) {
+    MPU6050_Init();
+    imuReadAccelerometerRaw=MPU6050_ReadAccelerometerRaw;
+    imuReadGyroRaw=MPU6050_ReadGyroRaw;
+  }
+#endif
 
 }
