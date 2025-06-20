@@ -21,11 +21,13 @@ extern "C"
 {{if eq .BoardType "BOARD_YARDFORCE500"}}
     #define BOARD_YARDFORCE500_VARIANT_ORIG 1
 {{end}}
+
+{{if eq .BoardType "BOARD_YARDFORCE500B"}}
+    #define BOARD_YARDFORCE_VARIANT_B 1
+{{end}}
+
 {{if eq .BoardType "BOARD_LUV1000RI"}}
     #define BOARD_LUV1000RI 1
-{{end}}
-{{if eq .BoardType "BOARD_YARDFORCE500B"}}
-    #define BOARD_YARDFORCE500_VARIANT_B 1
 {{end}}
 
 /* definition type don't modify */
