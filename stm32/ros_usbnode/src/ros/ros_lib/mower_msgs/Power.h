@@ -21,7 +21,7 @@ namespace mower_msgs
       _v_battery_type v_battery;
       typedef float _charge_current_type;
       _charge_current_type charge_current;
-      typedef uint8_t _charger_enabled_type;
+      typedef bool _charger_enabled_type;
       _charger_enabled_type charger_enabled;
       typedef const char* _charger_status_type;
       _charger_status_type charger_status;
@@ -38,24 +38,126 @@ namespace mower_msgs
 
     virtual int serialize(unsigned char *outbuffer) const override
     {
-      int offset=serializeTime(outbuffer,this->stamp);
-      offset+=serializeFloat(outbuffer+offset,this->v_charge);
-      offset+=serializeFloat(outbuffer+offset,this->v_battery);
-      offset+=serializeFloat(outbuffer+offset,this->charge_current);
-      offset+=serializeUint8(outbuffer+offset,this->charger_enabled);
-      offset+=serializeString(outbuffer+offset,this->charger_status);
+      int offset = 0;
+      *(outbuffer + offset + 0) = (this->stamp.sec >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (this->stamp.sec >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 2) = (this->stamp.sec >> (8 * 2)) & 0xFF;
+      *(outbuffer + offset + 3) = (this->stamp.sec >> (8 * 3)) & 0xFF;
+      offset += sizeof(this->stamp.sec);
+      *(outbuffer + offset + 0) = (this->stamp.nsec >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (this->stamp.nsec >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 2) = (this->stamp.nsec >> (8 * 2)) & 0xFF;
+      *(outbuffer + offset + 3) = (this->stamp.nsec >> (8 * 3)) & 0xFF;
+      offset += sizeof(this->stamp.nsec);
+      union {
+        float real;
+        uint32_t base;
+      } u_v_charge;
+      u_v_charge.real = this->v_charge;
+      *(outbuffer + offset + 0) = (u_v_charge.base >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (u_v_charge.base >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 2) = (u_v_charge.base >> (8 * 2)) & 0xFF;
+      *(outbuffer + offset + 3) = (u_v_charge.base >> (8 * 3)) & 0xFF;
+      offset += sizeof(this->v_charge);
+      union {
+        float real;
+        uint32_t base;
+      } u_v_battery;
+      u_v_battery.real = this->v_battery;
+      *(outbuffer + offset + 0) = (u_v_battery.base >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (u_v_battery.base >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 2) = (u_v_battery.base >> (8 * 2)) & 0xFF;
+      *(outbuffer + offset + 3) = (u_v_battery.base >> (8 * 3)) & 0xFF;
+      offset += sizeof(this->v_battery);
+      union {
+        float real;
+        uint32_t base;
+      } u_charge_current;
+      u_charge_current.real = this->charge_current;
+      *(outbuffer + offset + 0) = (u_charge_current.base >> (8 * 0)) & 0xFF;
+      *(outbuffer + offset + 1) = (u_charge_current.base >> (8 * 1)) & 0xFF;
+      *(outbuffer + offset + 2) = (u_charge_current.base >> (8 * 2)) & 0xFF;
+      *(outbuffer + offset + 3) = (u_charge_current.base >> (8 * 3)) & 0xFF;
+      offset += sizeof(this->charge_current);
+      union {
+        bool real;
+        uint8_t base;
+      } u_charger_enabled;
+      u_charger_enabled.real = this->charger_enabled;
+      *(outbuffer + offset + 0) = (u_charger_enabled.base >> (8 * 0)) & 0xFF;
+      offset += sizeof(this->charger_enabled);
+      uint32_t length_charger_status = strlen(this->charger_status);
+      varToArr(outbuffer + offset, length_charger_status);
+      offset += 4;
+      memcpy(outbuffer + offset, this->charger_status, length_charger_status);
+      offset += length_charger_status;
       return offset;
     }
 
     virtual int deserialize(unsigned char *inbuffer) override
     {
-      int offset=deserializeTime(inbuffer,&this->stamp);
-      offset+=deserializeFloat(inbuffer+offset,&this->v_charge);
-      offset+=deserializeFloat(inbuffer+offset,&this->v_battery);
-      offset+=deserializeFloat(inbuffer+offset,&this->charge_current);
-      offset+=deserializeUint8(inbuffer+offset,&this->charger_enabled);
-      offset+=deserializeString(inbuffer+offset,&this->charger_status);
-      return offset;
+      int offset = 0;
+      this->stamp.sec =  ((uint32_t) (*(inbuffer + offset)));
+      this->stamp.sec |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      this->stamp.sec |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
+      this->stamp.sec |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
+      offset += sizeof(this->stamp.sec);
+      this->stamp.nsec =  ((uint32_t) (*(inbuffer + offset)));
+      this->stamp.nsec |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      this->stamp.nsec |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
+      this->stamp.nsec |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
+      offset += sizeof(this->stamp.nsec);
+      union {
+        float real;
+        uint32_t base;
+      } u_v_charge;
+      u_v_charge.base = 0;
+      u_v_charge.base |= ((uint32_t) (*(inbuffer + offset + 0))) << (8 * 0);
+      u_v_charge.base |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      u_v_charge.base |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
+      u_v_charge.base |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
+      this->v_charge = u_v_charge.real;
+      offset += sizeof(this->v_charge);
+      union {
+        float real;
+        uint32_t base;
+      } u_v_battery;
+      u_v_battery.base = 0;
+      u_v_battery.base |= ((uint32_t) (*(inbuffer + offset + 0))) << (8 * 0);
+      u_v_battery.base |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      u_v_battery.base |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
+      u_v_battery.base |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
+      this->v_battery = u_v_battery.real;
+      offset += sizeof(this->v_battery);
+      union {
+        float real;
+        uint32_t base;
+      } u_charge_current;
+      u_charge_current.base = 0;
+      u_charge_current.base |= ((uint32_t) (*(inbuffer + offset + 0))) << (8 * 0);
+      u_charge_current.base |= ((uint32_t) (*(inbuffer + offset + 1))) << (8 * 1);
+      u_charge_current.base |= ((uint32_t) (*(inbuffer + offset + 2))) << (8 * 2);
+      u_charge_current.base |= ((uint32_t) (*(inbuffer + offset + 3))) << (8 * 3);
+      this->charge_current = u_charge_current.real;
+      offset += sizeof(this->charge_current);
+      union {
+        bool real;
+        uint8_t base;
+      } u_charger_enabled;
+      u_charger_enabled.base = 0;
+      u_charger_enabled.base |= ((uint8_t) (*(inbuffer + offset + 0))) << (8 * 0);
+      this->charger_enabled = u_charger_enabled.real;
+      offset += sizeof(this->charger_enabled);
+      uint32_t length_charger_status;
+      arrToVar(length_charger_status, (inbuffer + offset));
+      offset += 4;
+      for(unsigned int k= offset; k< offset+length_charger_status; ++k){
+          inbuffer[k-1]=inbuffer[k];
+      }
+      inbuffer[offset+length_charger_status-1]=0;
+      this->charger_status = (char *)(inbuffer + offset-1);
+      offset += length_charger_status;
+     return offset;
     }
 
     virtual const char * getType() override { return "mower_msgs/Power"; };
