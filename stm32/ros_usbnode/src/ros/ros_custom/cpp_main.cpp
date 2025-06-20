@@ -612,7 +612,7 @@ extern "C" void broadcast_handler()
 		om_mower_status_msg.stamp = nh.now();
 		om_mower_status_msg.mower_status = mower_msgs::Status::MOWER_STATUS_OK;
 		om_mower_status_msg.raspberry_pi_power = true;
-		om_mower_status_msg.gps_power = true;
+		om_mower_status_msg.is_charging = chargecontrol_is_charging;
 		om_mower_status_msg.esc_power = true;
 
 		om_mower_status_msg.rain_detected = RAIN_Sense();
