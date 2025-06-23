@@ -55,7 +55,7 @@ static const int32_t *sigcode=NULL;
 static int sigcode_length;
 static int print_pos=-1;
 
-float coilSigSum[COIL_OFF] = {0.0,0.0,0.0};
+float coilSigSum[COIL_OFF] = {0.0f,0.0f,0.0f};
 int coilSigN[COIL_OFF]={0,0,0};
 
 perimeter_CoilNumber_e idxCoil = COIL_LEFT;

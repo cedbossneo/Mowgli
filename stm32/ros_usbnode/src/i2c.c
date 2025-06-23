@@ -114,9 +114,9 @@ void I2C_ReadAccelerometer(float *x, float *y, float *z)
     if (reg.byte) {            
             memset(data_raw_acceleration, 0x00, 3 * sizeof(int16_t));
             lis3dh_acceleration_raw_get(&dev_ctx, data_raw_acceleration);
-            *x = lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[0]) / 1000.0 * MS2_PER_G;
-            *y = lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[1]) / 1000.0 * MS2_PER_G;
-            *z = lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[2]) / 1000.0 * MS2_PER_G;
+            *x = lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[0]) / 1000.0f * MS2_PER_G;
+            *y = lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[1]) / 1000.0f * MS2_PER_G;
+            *z = lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[2]) / 1000.0f * MS2_PER_G;
            // debug_printf("Acceleration [ms^2]: X=%4.2f\tY=%4.2f\tZ=%4.2f\r\n", *x, *y, *z);  
     }    
     else
@@ -140,7 +140,7 @@ float I2C_ReadAccelerometerTemp(void)
     dev_ctx.read_reg = I2C_platform_read;
     dev_ctx.handle = &I2C_Handle;
 
-    static float temperature_degC = 0.0;
+    static float temperature_degC = 0.0f;
     static int16_t data_raw_temperature;
     lis3dh_reg_t reg;  
 

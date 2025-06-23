@@ -31,7 +31,7 @@
 *******************************************************************************/
 #define WT901_ADDRESS 0x50
 
-#define WT901_G_FACTOR 16/32768
+#define WT901_G_FACTOR 16.0f/32768.0f
 #define WT901_DPS_FACTOR 2000.0f/32768.0f
 #define WT901_T_FACTOR 0.00000015f    
 
