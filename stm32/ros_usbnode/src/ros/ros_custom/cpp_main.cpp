@@ -622,7 +622,7 @@ extern "C" void broadcast_handler()
 		om_power_msg.battery_voltage_adc = battery_voltage;
 		om_power_msg.battery_voltage_chg = battery_voltage;
 		om_power_msg.battery_voltage_bms = battery_voltage;
-		om_power_msg.charge_voltage_adc = charge_voltage;
+		om_power_msg.charge_voltage_adc = chargerInputVoltage;
 		om_power_msg.charge_voltage_chg = charge_voltage;
 		om_power_msg.charge_current = current;
 		om_power_msg.charger_enabled = chargecontrol_is_charging;
