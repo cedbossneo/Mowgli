@@ -45,6 +45,11 @@
 #include "cpp_main.h"
 #include "ringbuffer.h"
 
+#ifdef I_DONT_NEED_MY_FINGERS_WHEN_RECORDING
+#define EMERGENCY_CHECKING_DISABLE_LOCAL 2
+#define EMERGENCY_CHECKING_ENABLE_LOCAL 3
+#endif
+
 static void WATCHDOG_vInit(void);
 static void WATCHDOG_Refresh(void);
 void TIM4_Init(void);
@@ -293,10 +298,27 @@ int main(void)
     }
 
 #ifndef I_DONT_NEED_MY_FINGERS
-    if (NBT_handler(&main_emergency_nbt))
-    {
-      EmergencyController();
+if (NBT_handler(&main_emergency_nbt)) {
+
+#ifdef I_DONT_NEED_MY_FINGERS_WHEN_RECORDING
+    static uint8_t emergency_was_disabled_for_recording = 0;
+
+    if (main_eOpenmowerStatus == OPENMOWER_STATUS_RECORD) {
+        Emergency_SetState(EMERGENCY_CHECKING_DISABLE_LOCAL);
+        emergency_was_disabled_for_recording = 1;
+    } else {
+        if (emergency_was_disabled_for_recording) {
+            Emergency_SetState(EMERGENCY_CHECKING_ENABLE_LOCAL);
+            emergency_was_disabled_for_recording = 0;
+        }
+
+        EmergencyController();
     }
+#else
+    EmergencyController();
+#endif
+
+}
 #endif
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

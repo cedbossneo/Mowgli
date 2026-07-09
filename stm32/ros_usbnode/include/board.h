@@ -94,6 +94,7 @@ extern "C"
 #endif
 
 //#define I_DONT_NEED_MY_FINGERS              1      // disables EmergencyController() (no wheel lift, or tilt sensing and stopping the blade anymore)
+#define I_DONT_NEED_MY_FINGERS_WHEN_RECORDING 1      //   disables EmergencyController in area recording mode only
 
 /// nominal max charge current is 1.0 Amp
 #define MAX_CHARGE_CURRENT 1.0f

@@ -52,17 +52,23 @@ uint8_t Emergency_State(void)
  * @brief Set Emergency State bits
  * @retval none
  */
-void  Emergency_SetState(uint8_t new_emergency_state)
+void Emergency_SetState(uint8_t new_emergency_state)
 {
-    switch (new_emergency_state)  {
+    switch (new_emergency_state)
+    {
         case EMERGENCY_CHECKING_DISABLE:
             emergency_checking_disabled = true;
             emergency_state = 0;
             break;
+
         case EMERGENCY_CHECKING_ENABLE:
             emergency_checking_disabled = false;
+            emergency_state = 0;
+            break;
+
         default:
             emergency_state = new_emergency_state;
+            break;
     }
 }
 
